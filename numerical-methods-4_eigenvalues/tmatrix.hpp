@@ -250,7 +250,7 @@ void QR_decompose(TMatrix<T> &Q, TMatrix<T> &R, const TMatrix<T> &A) {
 	T s(0);
 	for (size_t i = 0; i < N - 1; ++i)
 		for (size_t j = i + 1; j < N; ++j)
-			if (!isZero(R[j][i])) {
+			if (!is_zero(R[j][i])) {
 				const T inverseNorm = static_cast<T>(1) / std::sqrt(sqr(R[i][i]) + sqr(R[j][i]));
 				c = R[i][i] * inverseNorm;
 				s = R[j][i] * inverseNorm;

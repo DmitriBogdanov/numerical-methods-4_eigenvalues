@@ -8,10 +8,15 @@
 
 #include "tmatrix.hpp"
 #include "qr_algorithm.hpp"
+#include "hessenberg_form.hpp"
 
 
 
 constexpr auto CONFIG_PATH = "config.txt";
+
+void separator() {
+	std::cout << "\n#########################";
+}
 
 // Parse config and return input/output filepaths
 // @return 1 => input filepath
@@ -54,10 +59,11 @@ DMatrix parse_matrix(const std::string &filepath) {
 }
 
 void run_qr_algorithm(const DMatrix &A, double precision, QRMode mode, const std::string &outputFolder) {
+	separator();
 	std::cout
-		<< "\n##### Method    -> QR algorithm"
-		<< "\n##### Precision -> " << precision
-		<< "\n##### Shifts    -> " << (static_cast<bool>(mode) ? "ON" : "OFF");
+		<< "\n>>> Method    -> QR algorithm"
+		<< "\n>>> Precision -> " << precision
+		<< "\n>>> Shifts    -> " << (static_cast<bool>(mode) ? "ON" : "OFF");
 
 	auto [eigenvals, iterations] = QR_algorithm(A, precision, mode);
 
@@ -80,12 +86,24 @@ int main(int* argc, char** argv) {
 		std::cout << ">>> Parsing matrix...\n";
 		const auto A = parse_matrix(inputPath);
 
-		std::cout << ">>> A(" << A.rows() << ", " << A.cols() << "):\n";
+		separator();
+		std::cout << "\n>>> A(" << A.rows() << ", " << A.cols() << "):\n";
 		A.print();
 
 		// QR algorithm
 		run_qr_algorithm(A, precision, QRMode::SHIFTS_ON, outputFolder);
 		run_qr_algorithm(A, precision, QRMode::SHIFTS_OFF, outputFolder);
+
+		// Get Hesenberg matrix
+		const auto hessenbergForm = hessenberg_form(A);
+
+		separator();
+		std::cout << "\n>>> HessenbergForm(" << hessenbergForm.rows() << ", " << hessenbergForm.cols() << "):\n";
+		hessenbergForm.print();
+
+		// QR algorithm with Hessenberg matrix
+		run_qr_algorithm(hessenbergForm, precision, QRMode::SHIFTS_ON, outputFolder);
+		run_qr_algorithm(hessenbergForm, precision, QRMode::SHIFTS_OFF, outputFolder);
 	}
 	// If caught any errors, show error message
 	catch (const std::runtime_error& err) {

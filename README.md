@@ -3,6 +3,8 @@
 Contains implementations of following methods for eigenvalue computation:
 
 * QR-algorithm
+* Optional usage of shifts (selectable through QRMode)
+* Optional usafe of Heisenberg form (selectable by applying heisenberg_form())
 
 Note that present implementations are intended for academic purposes, as such they are not meant to be used in any sort of high-performance production code.
 
@@ -22,8 +24,13 @@ Refer to 'config.txt' as an example. Upon execution no furter inputs are require
 
 ## Version history
 
+* 00.03
+    * Implemented computation of Hessenberg matrix
+    * Added tests for QR-algorithm with Hessenberg form
+
 * 00.02
     * Implemented shifts for QR-algorithm as an optional mode
+
 * 00.01
     * Basic boilerplate
     * Implemented QR-algorithm
