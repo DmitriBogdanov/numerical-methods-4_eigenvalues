@@ -22,6 +22,8 @@ Refer to 'config.txt' as an example. Upon execution no furter inputs are require
 
 ## Version history
 
+* 00.02
+    * Implemented shifts for QR-algorithm as an optional mode
 * 00.01
     * Basic boilerplate
     * Implemented QR-algorithm
