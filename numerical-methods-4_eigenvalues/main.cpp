@@ -16,21 +16,24 @@ constexpr auto CONFIG_PATH = "config.txt";
 // Parse config and return input/output filepaths
 // @return 1 => input filepath
 // @return 2 => output filepath
-std::tuple<std::string, std::string> parse_config() {
+// @return 3 => precision
+std::tuple<std::string, std::string, double> parse_config() {
 	std::ifstream inConfig(CONFIG_PATH);
 
 	if (!inConfig.is_open()) throw std::runtime_error("Could not open config file");
 
 	std::string outputFolder;
 	std::string inputPath;
+	double precision;
 
 	std::string dummy; // used to skip comments
 
 	inConfig
 		>> dummy >> inputPath
-		>> dummy >> outputFolder;
+		>> dummy >> outputFolder
+		>> dummy >> precision;
 
-	return { inputPath, outputFolder };
+	return { inputPath, outputFolder, precision };
 }
 
 DMatrix parse_matrix(const std::string &filepath) {
@@ -50,13 +53,26 @@ DMatrix parse_matrix(const std::string &filepath) {
 	return A;
 }
 
+void run_qr_algorithm(const DMatrix &A, double precision, QRMode mode, const std::string &outputFolder) {
+	std::cout
+		<< "\n##### Method    -> QR algorithm"
+		<< "\n##### Precision -> " << precision
+		<< "\n##### Shifts    -> " << (static_cast<bool>(mode) ? "ON" : "OFF");
+
+	auto [eigenvals, iterations] = QR_algorithm(A, precision, mode);
+
+	std::cout << "\n>>> Eigenvalues computed in " << iterations << " iterations:\n";
+	eigenvals.print();
+
+	/// SAVE TO THE FILE
+}
 
 
 int main(int* argc, char** argv) {
 	try {
 		// Parse config
 		std::cout << ">>> Parsing config...\n";
-		const auto [inputPath, outputFolder] = parse_config();
+		const auto [inputPath, outputFolder, precision] = parse_config();
 
 		std::cout << ">>> Input path = " << inputPath << "\n>>> Output folder = " << outputFolder << "\n";
 
@@ -67,8 +83,9 @@ int main(int* argc, char** argv) {
 		std::cout << ">>> A(" << A.rows() << ", " << A.cols() << "):\n";
 		A.print();
 
-		QR_algorith(A, 1e-6);
-
+		// QR algorithm
+		run_qr_algorithm(A, precision, QRMode::SHIFTS_ON, outputFolder);
+		run_qr_algorithm(A, precision, QRMode::SHIFTS_OFF, outputFolder);
 	}
 	// If caught any errors, show error message
 	catch (const std::runtime_error& err) {
