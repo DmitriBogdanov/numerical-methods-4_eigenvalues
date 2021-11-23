@@ -163,6 +163,26 @@ void multiply(TMatrix<T> &dest, const TMatrix<T> &src, T value) {
 	for (size_t k = 0; k < dest.total_size(); ++k) dest(k) = src(k) * value;
 }
 
+// vector * vector
+template<typename T>
+T dot_product(TMatrix<T> &vec1, const TMatrix<T> &vec2) {
+	T sum(0);
+
+	for (size_t k = 0; k < vec1.total_size(); ++k) sum += vec1(k) * vec2(k);
+
+	return sum;
+}
+
+// Returns eucledian vector norm
+template<typename T>
+T eucledian_norm(const TMatrix<T> &vector) {
+	T sum(0);
+
+	for (size_t i = 0; i < vector.total_size(); ++i) sum += sqr(vector(i));
+
+	return std::sqrt(sum);
+}
+
 // Returns ||A-B|| where A, B are column-vectors
 template<typename T>
 T vector_difference_norm(const TMatrix<T> &src1, const TMatrix<T> &src2) {
@@ -230,6 +250,64 @@ void transpose_square(TMatrix<T> &A) {
 			std::swap(A[i][j], A[j][i]);
 }
 
+template<typename T>
+DMatrix gauss_solve(const TMatrix<T> &inpA, const TMatrix<T> &inpB) {
+	const auto N = inpA.rows();
+
+	// Concate matrices A = inpA|inpB
+	TMatrix<T> A(N, N + 1);
+
+	for (size_t i = 0; i < N; ++i)
+		for (size_t j = 0; j < N; ++j)
+			A[i][j] = inpA[i][j];
+
+	for (size_t i = 0; i < N; ++i)
+		A[i][N] = inpB[i][0];
+
+	// Forward elimination
+	for (size_t k = 0; k < A.rows(); ++k) {
+		// Select leading row and swap it with current row if needed
+		auto leadingRow = k;
+		for (size_t i = k; i < A.rows(); ++i)
+			if (std::abs(A[i][k]) > std::abs(A[leadingRow][k]))
+				leadingRow = i;
+
+		// Swap row with leading row
+		if (leadingRow != k)
+			for (size_t j = 0; j < A.cols(); ++j)
+				std::swap(A[leadingRow][j], A[k][j]);
+
+		// If the diagonal element of a leading row is zero, matrix is singular => throw
+		if (is_zero(A[k][k]))
+			throw std::runtime_error("ERROR: Could not solve the system with singular matrix");
+
+		// Set diagonal element to 1 by multiplying its row
+		const T factor = static_cast<T>(1) / A[k][k];
+		for (size_t j = k; j < A.cols(); ++j) A[k][j] *= factor;
+
+		// Substract current row from the following ones completing the step
+		for (size_t i = k + 1; i < A.rows(); ++i) {
+			const T firstElement = -A[i][k];
+
+			for (size_t j = k; j < A.cols(); ++j) A[i][j] += A[k][j] * firstElement;
+		}
+	}
+
+	// Backward elimination
+	// Go backwards until our matrix is diagonal
+	for (size_t k = A.rows() - 1; k > 0; --k)
+		for (size_t i = 1; i <= k; ++i) {
+			const T factor = -A[k - i][k];
+			for (size_t j = k; j <= A.cols(); ++j) A[k - i][j] += A[k][j] * factor;
+		}
+
+	// Return solution as a column
+	TMatrix<T> solution(N, 1);
+	for (size_t i = 0; i < A.rows(); ++i) solution[i][0] = A[i][A.cols() - 1];
+
+	return solution;
+}
+
 // Returns QR decomposition of A
 // - outputs into Q, R
 template<typename T>
@@ -267,4 +345,34 @@ void QR_decompose(TMatrix<T> &Q, TMatrix<T> &R, const TMatrix<T> &A) {
 			}
 
 	transpose_square(Q);
+}
+
+// Solve linear system using existing QR-decomposition
+// - stores solution in 'dest'
+template<typename T>
+void QR_solve(TMatrix<T> &dest, const TMatrix<T> &inpQ, const TMatrix<T> &inpR, const TMatrix<T> &b) {
+	const auto N = inpQ.rows();
+
+	// Get Q^T
+	auto R = inpR;
+	auto QT = inpQ;
+	transpose_square(QT);
+
+	// Get right side f = Q^T * b
+	multiply(dest, QT, b);
+
+	// Solve through Gauss backwards elimination
+	for (size_t k = 0; k < N; ++k) {
+		const T factor = 1. / R[k][k];
+		for (size_t j = k; j < N; ++j) R[k][j] *= factor;
+		dest[k][0] *= factor;
+	}
+
+	for (size_t k = N - 1; k > 0; --k) {
+		for (size_t i = 1; i <= k; ++i) {
+			const T factor = R[k - i][k];
+			R[k - i][k] -= R[k][k] * factor;
+			dest[k - i][0] -= dest[k][0] * factor;
+		}
+	}
 }
